@@ -1,0 +1,21 @@
+FROM ubuntu:cosmic as builder
+
+ENV LC_ALL=C.UTF-8 \
+    LANG=C.UTF-8
+
+RUN set -ex \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends software-properties-common \
+    && add-apt-repository ppa:alex-p/tesseract-ocr \
+    && apt-get update \
+    && apt install -y tesseract-ocr libtesseract-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM builder
+
+RUN set -ex \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends python3.6 python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
