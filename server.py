@@ -1,25 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import base64
 from io import BytesIO
 
 import pytesseract
-from PIL import Image
 from flask import Flask, jsonify, request
+
+from tasks import ocr_tesseract
 
 
 app = Flask(__name__)
 
 
-def ocr_tesseract(im_buff):
-    im = Image.open(im_buff)
-
-    txt = pytesseract.image_to_string(im)
-    return txt
-
-
-@app.route("/ocr", methods=["GET", "POST"])
-def hello():
+@app.route("/ocr/tesseract", methods=["GET", "POST"])
+def handler_tesseract():
     result_bucket = []
 
     if request.method == "GET":
@@ -31,16 +26,57 @@ def hello():
         return html
 
     elif request.method == "POST":
+        b64_img = request.form.get("b64_img")
         files = request.files
 
-        for fk in files:
-            file = files[fk]
+        if not b64_img and not files:
+            result_bucket.append(dict(result=0, err="Missing params: b64_img or files ."))
 
-            ocr_result = ocr_tesseract(BytesIO(file.read()))
+        elif files:
+            for fk in files:
+                file = files[fk]
 
-            if ocr_result:
-                result_bucket.append(dict(result=1, txt=ocr_result))
+                async_result = ocr_tesseract.apply_async(
+                    kwargs=dict(
+                        im_buff=BytesIO(file.read())
+                    ),
+                    serializer="pickle",
+                )
+
+                response = dict(origin_name=fk)
+                if async_result.status == "SUCCESS":
+                    response["result"] = 1
+                    response["txt"] = async_result.result
+
+                else:
+                    response["result"] = 0
+
+                response["celery_id"] = async_result.task_id
+                response["celery_st"] = async_result.status
+
+                result_bucket.append(response)
+
+        elif b64_img:
+            decode_data = base64.b64decode(b64_img)
+
+            async_result = ocr_tesseract.apply_async(
+                kwargs=dict(
+                    im_buff=BytesIO(decode_data)
+                ),
+                serializer="pickle",
+            )
+
+            response = dict()
+            if async_result.status == "SUCCESS":
+                response["result"] = 1
+                response["txt"] = async_result.result
+
             else:
-                result_bucket.append(dict(result=0, txt=None))
+                response["result"] = 0
+
+            response["celery_id"] = async_result.task_id
+            response["celery_st"] = async_result.status
+
+            result_bucket.append(response)
 
         return jsonify(result_bucket)

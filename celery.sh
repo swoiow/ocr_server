@@ -9,5 +9,5 @@ cd /app
 echo "Installing requirements.txt"
 cpip -r ./requirements.txt
 
-echo "Running Server"
-uwsgi uwsgi.ini
+echo "Running Celery"
+celery -A ext.celeryapp worker -l info --uid nobody --autoscale=10,1
