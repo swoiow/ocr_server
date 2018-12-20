@@ -28,17 +28,19 @@ https://github.com/GoogleChrome/puppeteer/issues/1948
 
 ## 接口介绍
 
-+ 参数方式一：
-    > api: `/html2img` method: `POST`
-    + html: `整个页面的 html`
-    + dom: `传入 dom selector`
+> api: `/html2img` method: `POST`
++ html: `整个页面的 html`
++ dom: `传入 dom selector`
 
-+ 参数方式二：
-    > api: `/ud` method: `POST`
-    + url: `传入 url`
-    + dom: `传入 dom selector`
+> api: `/url2img` method: `POST`
++ url: `传入 url`
++ dom: `传入 dom selector`
 
+> api: `/get_html` method: `POST`
++ url: `传入 url`
+
+> api: `/get_cookie` method: `POST`
++ url: `传入 url`
 
 ## Run & Test
-+ `dk run -it --rm -v /home/me/gitlab/fonts/ocr_version/nodejs:/app -u root puppeteer:prod node p.js`
-+ ``
++ ` dk run -it --rm -v $PWD:/app -w /app -p 0.0.0.0:8081:8081 --cap-add SYS_ADMIN puppeteer node server.js`

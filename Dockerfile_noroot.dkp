@@ -1,0 +1,56 @@
+FROM debian:stretch-slim
+
+ENV LC_ALL=C.UTF-8 \
+    LANG=C.UTF-8
+
+ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_amd64 /usr/local/bin/dumb-init
+RUN chmod +x /usr/local/bin/dumb-init
+ADD https://deb.nodesource.com/setup_10.x /tmp/setup_nodejs.sh
+
+ARG RUNTIME_LIBS="xvfb gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 \
+      libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 \
+      libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 \
+      libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 \
+      libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils"
+ARG FONT_LIBS="fonts-ipafont-gothic fonts-wqy-zenhei ttf-freefont"
+
+RUN set -ex \
+    && apt-get update \
+    && apt-get install --no-install-recommends -y gnupg \
+    && apt-get install --no-install-recommends -y ${RUNTIME_LIBS} ${FONT_LIBS} \
+    && bash /tmp/setup_nodejs.sh \
+    && apt-get install --no-install-recommends -y nodejs \
+    && npm -g install express morgan puppeteer sharp --unsafe-perm \
+
+    # Do something clean
+    && npm cache clean --force \
+    && apt-get --purge autoremove -y gnupg python3 \
+    && apt-get autoclean && apt-get clean \
+    && find /usr/lib/ -name '*.pyc' -delete \
+    && find /usr/local/ -name '*.pyc' -delete \
+    && rm -rf /root/.cache /tmp/* /var/lib/apt/* /var/cache/* /var/log/* \
+
+    # Create Chrome-sandbox
+    && cd /usr/lib/node_modules/puppeteer/.local-chromium/linux-*/chrome-linux \
+    && cp $PWD/chrome_sandbox /usr/local/sbin/chrome-devel-sandbox \
+    && chown root:root /usr/local/sbin/chrome-devel-sandbox \
+    && chmod 4755 /usr/local/sbin/chrome-devel-sandbox \
+
+    # Create user for running chrome
+    && groupadd -r sandbox \
+    && useradd -r -g sandbox -G audio,video sandbox \
+    && mkdir -p /home/sandbox/Downloads \
+    && mkdir -p /app \
+    && chown -R sandbox:sandbox /usr/lib/node_modules \
+    && chown -R sandbox:sandbox /app \
+    && chown -R sandbox:sandbox /home/sandbox
+
+ENV PATH="/usr/lib/node_modules:$PATH" \
+    NODE_PATH="/usr/lib/node_modules:${NODE_PATH}" \
+    CHROME_DEVEL_SANDBOX="/usr/local/sbin/chrome-devel-sandbox"
+
+USER sandbox
+
+WORKDIR /app
+
+ENTRYPOINT ["dumb-init", "--"]
