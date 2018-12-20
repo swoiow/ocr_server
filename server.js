@@ -23,8 +23,8 @@ const run_args = {
         // "--proxy-server=127.0.0.1:10800",
 
         // 临时解决沙盒报错
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
+        // "--no-sandbox",
+        // "--disable-setuid-sandbox",
 
         "--disable-gpu",
         "--disable-dev-shm-usage",

@@ -9,29 +9,30 @@ RUN set -ex && \
     echo @edge http://nl.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories && \
     echo @edge http://nl.alpinelinux.org/alpine/edge/main >> /etc/apk/repositories && \
     apk add --no-cache \
+        harfbuzz \
         chromium@edge \
         nss@edge \
         dumb-init && \
     rm -rf /var/cache/apk/*
 
 RUN set -ex \
-    && yarn global add express puppeteer sharp body-parser \
+    && yarn global add express puppeteer sharp morgan \
     && yarn cache clean
 
 ENV NODE_PATH="/usr/local/share/.config/yarn/global/node_modules:${NODE_PATH}"
 ENV CHROMIUM_BIN="/usr/bin/chromium-browser"
 
 # Add user so we don't need --no-sandbox.
-RUN addgroup -S pptruser && adduser -S -g pptruser pptruser \
-    && mkdir -p /home/pptruser/Downloads \
+RUN addgroup -S sandbox && adduser -S -g sandbox sandbox \
+    && mkdir -p /home/sandbox/Downloads \
     && mkdir -p /app \
-    && chown -R pptruser:pptruser /home/pptruser \
-    && chown -R pptruser:pptruser /app
+    && chown -R sandbox:sandbox /home/sandbox \
+    && chown -R sandbox:sandbox /app
 
 WORKDIR /app
 
 # Run everything after as non-privileged user.
-USER pptruser
+USER sandbox
 ENV SERVER_PORT=8081 \
     SERVER_HOST=0.0.0.0
 
